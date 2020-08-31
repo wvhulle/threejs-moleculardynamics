@@ -9,7 +9,8 @@
 	<body>
         <div id="info">Will display time elapsed once running</div>
 		<script src="js/three.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenMax.min.js"></script>
+
+		
 		<script>
             // Background scene Initialization
 			var scene = new THREE.Scene();
@@ -37,20 +38,31 @@
             // Box
             var N = 10;
             var widthbox = heightcamera;
-            var boxgeometry = new THREE.BoxGeometry(widthbox,widthbox,widthbox);
-            var boxmaterial = new THREE.MeshPhongMaterial( { color: 0x00aa00 ,opacity:0.1, transparent: true, wireframe : true} );
-            var box = new THREE.Mesh( boxgeometry, boxmaterial );
-            box.geometry.computeBoundingBox();
-            boxgeometry.computeFaceNormals();
-            var boundingbox = new THREE.Box3();
+            var boxmaterial = new THREE.MeshBasicMaterial( { color: 0x00aa00 ,opacity:0.1, transparent: true, wireframe: true} );
+            bounds = [];
+            for (i = 0; i<1; i++) {
             
+                var boxgeometry = new THREE.BoxGeometry(widthbox,widthbox,widthbox);
+                
+                var box = new THREE.Mesh( boxgeometry, boxmaterial );
+                box.geometry.computeBoundingBox();
+                boxgeometry.computeFaceNormals();
+                
+                
+                
+                var boundingbox = new THREE.Box3();
+                
+                bounds.push(box);
+                
+                scene.add( box );
             
-            scene.add( box );
-            
+            }
+
             
             // Balls
             var particlecolor = 0xFFCC00;
-            var particlegeometry = new THREE.SphereGeometry(widthbox/N,8,8);
+            var particleradius = (Math.sqrt((widthbox^3)*0.5))/10;
+            var particlegeometry = new THREE.SphereGeometry(particleradius,8,8);
             var particlematerial = new THREE.MeshLambertMaterial( { color: particlecolor } );
 
             
@@ -87,7 +99,7 @@
                         mass: mass
                     });
                     scene.add( mesh );
-                    scene.add( arrowHelper);
+                    //scene.add( arrowHelper);
 
                 }
                 return particles;
@@ -117,45 +129,60 @@
                 t = clock.getElapsedTime();
                 document.getElementById('info').innerHTML = 'Time elapsed ' + t.toFixed(2);
                 for (var i = 0, l = particles.length; i < l ; i++) {
-                    var mesh = particles[i].mesh;
-                    var old_pos = mesh.position.clone();
-                    var speed = particles[i].speed.clone();
-                    var delta = speed.multiplyScalar(dt);
-                    particles[i].mesh.position.add(delta);
-                                        scene.updateMatrixWorld();
-
-                    var new_pos = particles[i].mesh.position.clone();
-                    var ray = new THREE.Raycaster(old_pos, speed.clone().normalize());
-                    scene.updateMatrixWorld();
-                    var intersects = ray.intersectObjects(scene.children);
-                    
-                    if ( intersects.length > 0 && intersects[0].distance < widthbox/N) {
-                        
-                        var raycastNormal = intersects[0].face.normal;
-                        var raycastGroundPosition = intersects[0].point;
-                        var distanceInside = 0.5-intersects[0].distance;
-                        
-                        //bounce back through wall
-                        //x = x - d vn/v * n
-                        particles[i].mesh.position.add( raycastNormal.clone().multiplyScalar(-speed.clone().normalize().dot(raycastNormal)).multiplyScalar(distanceInside)) 
-                        
-                        //console.log( raycastNormal.clone().multiplyScalar(-speed.clone().normalize().dot(raycastNormal)).multiplyScalar(distanceInside))
-                        
-                        //v = v - vn * n
-                        //switch speed vector
-                        particles[i].speed.add(raycastNormal.clone().multiplyScalar(-speed.clone().dot(raycastNormal)));
+                    // Bounce off walls x,y,z
+                    if (Math.abs(particles[i].mesh.position.x) > widthbox/2-particleradius) {
                         
                         
+                        var xnormal = new THREE.Vector3(1,0,0);
+                        var xcorrectionspeed = -  particles[i].speed.clone().dot(xnormal);
+                        var xcorrectionvector =  xnormal.multiplyScalar(xcorrectionspeed);
+                        particles[i].speed.add(xcorrectionvector).add(xcorrectionvector);
                     }
+                    
+                    if (Math.abs(particles[i].mesh.position.y) > widthbox/2-particleradius) {
+                        var ynormal = new THREE.Vector3(0,1,0);
+                        var ycorrectionspeed = -  particles[i].speed.clone().dot(ynormal);
+                        var ycorrectionvector =  ynormal.multiplyScalar(ycorrectionspeed);
+                        
+                        particles[i].speed.add(ycorrectionvector).add(ycorrectionvector);
+                    }
+                    
+                    if (Math.abs(particles[i].mesh.position.z) > widthbox/2-particleradius) {
+                        var znormal = new THREE.Vector3(0,0,1);
+                        var zcorrectionspeed = -  particles[i].speed.clone().dot(znormal);
+                        var zcorrectionvector =  znormal.multiplyScalar(zcorrectionspeed);
+                        
+                        particles[i].speed.add(zcorrectionvector).add(zcorrectionvector);
+                    }
+                    
+                    
+                    // Apply momentum change by interforces
+                    for (var j = i ; j < N; j++) {
+                    
+                        var d = particles[i].mesh.position.distanceTo(particles[j].mesh.position);
+                        
+                        function lj(d) {
+                            var epsilon = 0.01;
+                            var sigma = particleradius*10;
+                            return 4*epsilon*((sigma/d)^12- (sigma/d)^6);
+                        }
+                        
+                        function coulomb(d) {
+                            return ((0.0001)/d^2);
+                        }
+                    
+                        var forcedirection =  particles[i].mesh.position.clone().sub(particles[j].mesh.position).normalize();
+                        
+                        particles[i].speed.add(forcedirection.multiplyScalar((particles[j].mass) * dt * lj(d)))
+
+                    
+                    }
+                    
+                    // Move forward
+                    particles[i].mesh.position.add(particles[i].speed.clone().multiplyScalar(dt));
+                
                     particles[i].arrow.position.set(particles[i].mesh.position);
                     particles[i].arrow.setDirection(particles[i].speed);
-                    // var ray = new THREE.ray(old_pos,speed);
-                    //boundingbox.copy( box.geometry.boundingBox ).applyMatrix4( box.matrixWorld );
-                    
-                    //var crash = ray.intersectsBox( boundingbox );
-                    //if (crash) {
-                    //    console.log('crash');
-                    //}
                 }
                 renderer.render(scene,camera);
                 loop += 1;
