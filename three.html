@@ -2,24 +2,30 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>My first three.js app</title>
+		<title>Molecular dynamics simulator</title>
 		<link rel="stylesheet" href="css/main.css">
 		<link rel="shortcut icon" href="#" />
 	</head>
 	<body>
         <div id="info">Will display time elapsed once running</div>
-		<script src="js/three.js"></script>
-
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r120/three.min.js "></script>
+		<script type="text/javascript" src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+		
 		
 		<script>
+		
+		
             // Background scene Initialization
 			var scene = new THREE.Scene();
 			scene.background = new THREE.Color('white');
 			
             // Camera
             var heightcamera = 5;
+            
             var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
             camera.position.z = heightcamera;
+            
+            
 
             // Renderer
             var renderer = new THREE.WebGLRenderer({antialias: true});
@@ -35,8 +41,13 @@
             }, false);
             
             
+            // Orbit
+            var controls = new THREE.OrbitControls( camera, renderer.domElement  );
+            controls.enableDamping = true;
+            controls.autorotate = true;
+            
             // Box
-            var N = 10;
+            var N = 100 ;
             var widthbox = heightcamera;
             var boxmaterial = new THREE.MeshBasicMaterial( { color: 0x00aa00 ,opacity:0.1, transparent: true, wireframe: true} );
             bounds = [];
@@ -57,12 +68,15 @@
                 scene.add( box );
             
             }
-
+            // Axis
+            var axesHelper = new THREE.AxesHelper( 5 );
+            scene.add( axesHelper );
+    
             
-            // Balls
+            // Particles
             var particlecolor = 0xFFCC00;
             var particleradius = (Math.sqrt((widthbox^3)*0.5))/10;
-            var particlegeometry = new THREE.SphereGeometry(particleradius,8,8);
+            
             var particlematerial = new THREE.MeshLambertMaterial( { color: particlecolor } );
 
             
@@ -81,24 +95,37 @@
             function createParticles(n){
                 var particles = []; var i;
                 for (i = 0; i<n; i++) {
-                    var mesh = new THREE.Mesh( particlegeometry, particlematerial );
-                    rnmbslocation = getNRandomInt(-widthbox/2,widthbox/2,3);
-                    mesh.position.set(...rnmbslocation);
-                    var charge = 1, mass = 1;
-                    rnmbsspeed = getNRandomInt(-widthbox/2,widthbox/2,3);
                     
-                    var particlespeed = new THREE.Vector3(...rnmbsspeed);
+                    var charges = [-1];
+                    
+                    
+                    
+                    var particlecharge = charges[Math.floor(Math.random() * charges.length)]; 
+                    
+                    var particlemass = getNRandomInt(3,10,1)[0];
+                    
+                    var particlegeometry = new THREE.SphereGeometry(Math.pow(particlemass,1/3)*particleradius,8,8);
+                    var particlemesh = new THREE.Mesh( particlegeometry, particlematerial );
+                    
+                    
+                    // Location
+                    rnmbslocation = getNRandomInt(-widthbox/2+particleradius,widthbox/2-particleradius,3);
+                    particlemesh.position.set(...rnmbslocation);
+                    
+                    //Speed
+                    rnmbsspeed = getNRandomInt(-widthbox/2,widthbox/2,3);
+                    var particlespeed = new THREE.Vector3(...rnmbsspeed).multiplyScalar(0.01);
                     var length = particlespeed.length();
-                    var arrowHelper = new THREE.ArrowHelper(particlespeed, mesh.position, length, particlecolor);
+                    var arrowHelper = new THREE.ArrowHelper(particlespeed, particlemesh.position, length, particlecolor);
                     //particles.push({mesh : particle, charge : charge , speed : speed, arrow : arrowHelper,  mass: mass});
                     particles.push({
-                        mesh : mesh, 
-                        charge : charge , 
+                        mesh : particlemesh, 
+                        charge : particlecharge , 
                         speed : particlespeed, 
                         arrow : arrowHelper,
-                        mass: mass
+                        mass: particlemass
                     });
-                    scene.add( mesh );
+                    scene.add( particlemesh );
                     //scene.add( arrowHelper);
 
                 }
@@ -129,6 +156,9 @@
                 t = clock.getElapsedTime();
                 document.getElementById('info').innerHTML = 'Time elapsed ' + t.toFixed(2);
                 for (var i = 0, l = particles.length; i < l ; i++) {
+                
+                    
+                
                     // Bounce off walls x,y,z
                     if (Math.abs(particles[i].mesh.position.x) > widthbox/2-particleradius) {
                         
@@ -157,33 +187,47 @@
                     
                     
                     // Apply momentum change by interforces
-                    for (var j = i ; j < N; j++) {
+                    for (var j = i + 1 ; j < N; j++) {
                     
                         var d = particles[i].mesh.position.distanceTo(particles[j].mesh.position);
                         
-                        function lj(d) {
+                        // A scalar but wrong lennard-jones force
+                        function lj(d,m1,m2) {
                             var epsilon = 0.01;
                             var sigma = particleradius*10;
-                            return 4*epsilon*((sigma/d)^12- (sigma/d)^6);
+                            return m1*m2*4*epsilon*(-12*(sigma/d)^11+6*(sigma/d)^5);
                         }
                         
-                        function coulomb(d) {
-                            return ((0.0001)/d^2);
+                        function coulomb(d,q1,q2) {
+                            return (q1*q2*(0.000001)/d^2);
                         }
                     
-                        var forcedirection =  particles[i].mesh.position.clone().sub(particles[j].mesh.position).normalize();
+                        var forcedirection =  particles[j].mesh.position.clone().sub(particles[i].mesh.position).normalize();
                         
-                        particles[i].speed.add(forcedirection.multiplyScalar((particles[j].mass) * dt * lj(d)))
+                        var m1 = particles[i].mass;
+                        var q1 = particles[i].charge;
+                        var m2 = particles[j].mass;
+                        var q2 = particles[j].charge;
+                        
+                        var scalardiffmomentum = (1/m1) * dt * coulomb(d,m1,m2);
+                        
+               
+                        
+                        //particles[i].speed.add(forcedirection.clone().multiplyScalar(scalardiffmomentum))
+                        
+                        var scalardiffmomentum = 0;
 
                     
                     }
                     
+                    console.log(particles[i].mesh.speed)
+                    
                     // Move forward
-                    particles[i].mesh.position.add(particles[i].speed.clone().multiplyScalar(dt));
-                
+                    particles[i].mesh.position.add(particles[i].speed);
                     particles[i].arrow.position.set(particles[i].mesh.position);
                     particles[i].arrow.setDirection(particles[i].speed);
                 }
+                controls.update();
                 renderer.render(scene,camera);
                 loop += 1;
                 }
