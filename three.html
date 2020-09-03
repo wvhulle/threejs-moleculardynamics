@@ -48,7 +48,7 @@
             controls.autorotate = true;
             
             // Box
-            var N = 10 ;
+            var N = 25 ;
             var heightcamera = widthbox;
             var boxmaterial = new THREE.MeshBasicMaterial( { color: 0x00aa00 ,opacity:0.1, transparent: true, wireframe: true} );
             bounds = [];
@@ -89,19 +89,16 @@
             function createParticles(n){
                 var my_chance = new Chance();
                 var particles = []; var i;
-                var charges = [-1,1]; var massdensity = 1;
+                var chargedensities = [1,-1,2,-2]; var massdensity = 1;
                 var averagevolume = 0.5 * widthbox * 3 / (N * 4 * Math.PI);
                 var averageradius = Math.pow(averagevolume, 1/3)
                 //console.log(averagevolume);
-                for (i = 0; i<n; i++) {
-                    
-                    var particlecharge = charges[Math.floor(Math.random() * charges.length)]; 
-                                
+                for (i = 0; i<n; i++) {                               
                     var particleradius = my_chance.floating({min: averageradius/2, max: averageradius});
                                        //console.log(particleradius);
-                    var volume = (4*Math.PI/3)*(particleradius^3)
-                    var particlemass = massdensity * volume
- 
+                    var particlevolume = (4*Math.PI/3)*(particleradius^3)
+                    var particlecharge = chargedensities[Math.floor(Math.random() * chargedensities.length)] * particlevolume;
+                    var particlemass = massdensity * particlevolume
                     var particlegeometry = new THREE.SphereGeometry(particleradius,8,8);
                     var particlemesh = new THREE.Mesh( particlegeometry, particlematerial );
                     
@@ -196,7 +193,7 @@
                         }
                         
                         function coulomb(d,q1,q2) {
-                            var force = (q1*q2*(1)/(d^2));
+                            var force = (q1*q2*(0.01)/(d^2));
                             if (force == NaN) {
                                 force = 0;
                             }
@@ -231,7 +228,7 @@
                         //console.log(i);
                         console.log(particles[i].speed.clone())
                         window.cancelAnimationFrame(requestId);
-                    } else {
+                    } else if (dx == NaN) {
                         console.log(dx)
                         window.cancelAnimationFrame(requestId);
                     }
