@@ -50,20 +50,12 @@
             renderer.setSize( window.innerWidth, window.innerHeight );
             document.body.appendChild( renderer.domElement );
 
-
-			// Interactivity
-//			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-
 			window.addEventListener( 'resize', onWindowResize, false );
-			
 			renderer.domElement.addEventListener("click", onclick, true);
-			
-			
 			var intersectcoordinates = new THREE.Vector3()
 			
 	
 			function onclick(event) {
-				
 				if (true) {
 					//parameters.particlenumber++
 					var randomv = new THREE.Vector3().random().multiplyScalar(widthbox/10)
@@ -74,21 +66,15 @@
 	
 
 			function onWindowResize() {
-
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
-
 				renderer.setSize( window.innerWidth, window.innerHeight );
-
 			}
 
 			function onDocumentMouseMove( event ) {
-
 				event.preventDefault();
-
 				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
 			}
 			
             
@@ -112,16 +98,12 @@
             // Axis
             var axesHelper = new THREE.AxesHelper( widthbox );
             scene.add( axesHelper );
-    
             
             // Particles
-            
             var minparticleradius = (Math.sqrt((widthbox^3)*0.5))/10;
 			var my_chance = new Chance();
             var chargedensities = [-1,1]; 
-			
 			var particles = []
-			
 			
 			function createParticle(coordinates){
 				var averagevolume = 0.5 * widthbox * 3 / (parameters.particlenumber * 4 * Math.PI);
@@ -147,17 +129,14 @@
 				
 				//Speed
 				var particlespeed = new THREE.Vector3().random().multiplyScalar(widthbox/2-particleradius).multiplyScalar(1/100)
-				//var arrowHelper = new THREE.ArrowHelper(particlespeed, particlemesh.position, particlespeed.length(), particlecolor);
 				var particle = {
 					mesh : particlemesh, 
 					charge : particlecharge , 
 					speed : particlespeed, 
-					//arrow : arrowHelper,
 					mass: particlemass,
 					radius: particleradius
 				}
 				scene.add( particle.mesh);
-				//scene.add( particle.arrowHelper);
 				particles.push(particle);
 				return particle;
 			}
@@ -195,9 +174,7 @@
                 scene.add(light);
             }
             addLight(-widthbox/2, 2*widthbox, 4*widthbox);
-            
-			// var lasthoveredobject = box;
-			// var lastmaterial;
+ 
             
             var clock = new THREE.Clock();
             var loop = 0;
