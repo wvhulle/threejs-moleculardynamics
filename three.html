@@ -26,7 +26,7 @@
 			const gui = new dat.GUI();
 
 
-			var parameters = {clepsilon : 0.01, ljsigma : 0.3, ljepsilon : 5e4, particlenumber : 5, massdensity : 5};
+			var parameters = {clepsilon : 0.05, ljsigma : 0.3, ljepsilon : 5e4, particlenumber : 8, massdensity : 5};
 			gui.add(parameters, 'clepsilon', 0.001, 10).listen();
 			gui.add(parameters, 'ljsigma', 0.5, 2).listen();
 			gui.add(parameters, 'ljepsilon', 1e4, 1e7).listen();
