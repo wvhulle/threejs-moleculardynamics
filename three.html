@@ -7,13 +7,11 @@
 		<link rel="shortcut icon" href="#" />
 	</head>
 	<body> 
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r120/three.min.js "></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js"></script>
 		<script type="text/javascript" src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/chance/1.1.7/chance.min.js" integrity="sha512-dELYIOEzIECWdvsEdoywFOB4qKDmtQee33yD0dQnzAE7eBGKJ984VQXRLs/vlsP4Sb3VchbQL7iAy4NWqetCsw==" crossorigin="anonymous"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js" integrity="sha512-LF8ZB1iTwi4Qvkm4pekHG4a437Y9Af5ZuwbnW4GTbAWQeR2E4KW8WF+xH8b9psevV7wIlDMx1MH9YfPqgKhA/Q==" crossorigin="anonymous"></script>
-		<script type="text/javascript" src="js/simulation.js"> </script>
 		<script>
-		// @ts-check
             var widthbox = 5;
             // Background scene Initialization
 			var mouse = new THREE.Vector2(), INTERSECTED;
@@ -183,6 +181,7 @@
             
             var clock = new THREE.Clock();
             var loop = 0;
+            
             var render = function() {
                 requestId = requestAnimationFrame(render); // no distortion upon resize or refresh
                 
@@ -220,9 +219,14 @@
                 var dt = clock.getDelta();
                 var t = clock.getElapsedTime();
                 //document.getElementById('info').innerHTML = 'Time elapsed ' + t.toFixed(2);
-                var totalspeed = new THREE.Vector3(0,0,0);
+                
+                var totalenergy = 0;
+                
                 for (var i = 0, l = particles.length; i < l ; i++) {
-                    totalspeed.add(particles[i].speed);
+                    var particleenergy = 0;
+                    //console.log(particleenergy);
+                    particleenergy = particles[i].mass*(particles[i].speed.lengthSq())/2
+                    totalenergy += particleenergy;
                     var particleradius = particles[i].radius;
                     var maxallowed = (widthbox/2-particleradius);
                     // Bounce off walls x,y,z
@@ -288,11 +292,11 @@
 						particles[i].speed.add(forcedirection.clone().multiplyScalar(dv1))
 						particles[j].speed.add(forcedirection.clone().multiplyScalar(dv2))
                     }
-
+    
 					//Individual forces
 					// gravity and friction
 
-
+                    
                     // Checks on boundaries
                     //var old_position = particles[i].mesh.position.clone()
                     //var new_position =  particles[i].mesh.position.clone().add(particles[i].speed.clone().multiplyScalar(dt));
@@ -304,6 +308,7 @@
                      //particles[i].arrow.position.set(particles[i].mesh.position);
                     //particles[i].arrow.setDirection(particles[i].speed);
                 }
+                console.log('Total kinetic energy is ', totalenergy)
                 
 				
 				
